@@ -95,6 +95,9 @@ export default function FinancialControllerV2() {
   const [progress, setProgress] = useState({ loaded: 0, pages: 0, pageSize: 100000 });
   const [activeTab, setActiveTab] = useState('ai-chat');
   const [activeSubTab, setActiveSubTab] = useState('balance');
+  const [mainViewTab, setMainViewTab] = useState('balans');
+  const [showModal, setShowModal] = useState(false);
+  const [modalContent, setModalContent] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [sortBy, setSortBy] = useState('date');
@@ -362,9 +365,13 @@ export default function FinancialControllerV2() {
     setAvailableAdministrations(administrations);
     setAvailableYears(years);
 
-    // Select only the first administration by default
+        // Select only the first administration by default (only if none are selected yet)
+    let activeAdmins = selectedAdministrations;
+    if (selectedAdministrations.length === 0) {
     const defaultAdmins = administrations.length > 0 ? [administrations[0]] : [];
     setSelectedAdministrations(defaultAdmins);
+      activeAdmins = defaultAdmins;
+    }
 
           setAllRecords(rowsAll);
           setAllMeta({ 
@@ -377,7 +384,7 @@ export default function FinancialControllerV2() {
 
     // Filter by selected administrations and build view
     const filteredRecords = rowsAll.filter(record =>
-      defaultAdmins.includes(record['Admin._zonder_admin._filter'])
+      activeAdmins.includes(record['Admin._zonder_admin._filter'])
     );
     
     // For cash flow calculations, we need one extra month before the start period
@@ -713,38 +720,152 @@ export default function FinancialControllerV2() {
   // No need for loading states or user checks
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="mx-auto bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-[90%] mx-auto px-6 py-8">
-          {/* Title Section */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-slate-50">
+            {/* Top Navigation Bar - Modern Clean Design, Wireframe Layout */}
+      <div className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-full mx-auto px-8 py-6">
+          <div className="grid grid-cols-3 items-center gap-8">
+            
+            {/* Left: Administration Dropdown */}
+            <div className="flex items-center space-x-4">
                 <Image
                   src={FicareLogo}
-                  alt="Ficare Logo"
-                  width={149}
-                  height={32}
-                  className="h-8 w-auto"
-                />
-                <h1 className="text-3xl font-bold tracking-tight text-[#222c56] mt-2">
-                  AI Financial Controller Agent
-                </h1>
+                alt="Ficare" 
+                width={120} 
+                height={38}
+                priority
+              />
+              <div className="bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-medium text-sm">
+                Administratie selecteren
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-slate-600">
-                  Welkom, {userEmail}
+              <select 
+                className="px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[200px] bg-white shadow-sm"
+                value={selectedAdministrations.join(',')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedAdministrations(value ? [value] : []);
+                }}
+              >
+                <option value="">Alle administraties</option>
+                {availableAdministrations.map(admin => (
+                  <option key={admin} value={admin}>{admin}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Center: Period Selector */}
+            <div className="flex items-center justify-center">
+              <div className="bg-slate-50 px-6 py-4 rounded-xl border border-slate-200 shadow-sm">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-medium text-slate-700 whitespace-nowrap">Selecteren periode</span>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={startMonth}
+                      onChange={(e) => setStartMonth(parseInt(e.target.value))}
+                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      {monthOptions.map(month => (
+                        <option key={month.value} value={month.value}>{month.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={startYear}
+                      onChange={(e) => setStartYear(parseInt(e.target.value))}
+                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      {yearOptions.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                    <span className="text-slate-400 text-sm">tot</span>
+                    <select
+                      value={endMonth}
+                      onChange={(e) => setEndMonth(parseInt(e.target.value))}
+                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      {monthOptions.map(month => (
+                        <option key={month.value} value={month.value}>{month.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={endYear}
+                      onChange={(e) => setEndYear(parseInt(e.target.value))}
+                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      {yearOptions.map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+                        {/* Right: Data Status, Checks Button, User Menu */}
+            <div className="flex items-center justify-end space-x-4">
+              {/* Data Status Popup */}
+              <div className="relative">
+                <button 
+                  onClick={() => {
+                    setModalContent('data-settings');
+                    setShowModal(true);
+                  }}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                    data 
+                      ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100' 
+                      : error 
+                        ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${
+                    data ? 'bg-green-500' : error ? 'bg-red-500' : 'bg-slate-400'
+                  }`}></div>
+                  <span>
+                    {data 
+                      ? `${allMeta?.totalRecords?.toLocaleString() || 0} records` 
+                      : loading 
+                        ? 'Laden...' 
+                        : 'Geen data'
+                    }
                           </span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+
+              <button 
+                onClick={() => {
+                  setMainViewTab('checks');
+                  // Scroll to main content area
+                  document.querySelector('[aria-label="Main View Tabs"]')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className={`flex items-center space-x-3 px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200 shadow-md hover:shadow-lg ${
+                  mainViewTab === 'checks' 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+              >
+                <div className={`w-3 h-3 rounded-full ${data ? 'bg-green-300' : 'bg-slate-300'}`}></div>
+                <span>Checks</span>
+              </button>
+              <div className="text-sm text-slate-500">
+                <span>{userEmail}</span>
+              </div>
                 <button
                   onClick={handleSignOut}
-                  className="px-4 py-2 text-sm font-medium text-[#222c56] hover:text-[#82cff4] hover:bg-slate-50 rounded-lg transition-colors border border-slate-300"
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
                 >
                   Uitloggen
                 </button>
+            </div>
               </div>
                   </div>
               </div>
+
+      <div className="max-w-[90%] mx-auto px-6 py-8">
+        <div className="mb-8">
               
           {/* Settings Section - Collapsible */}
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
@@ -1016,8 +1137,186 @@ export default function FinancialControllerV2() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-[90%] mx-auto px-6 py-8">
+
+
+      {/* Main Content - Exact Wireframe Layout */}
+      <div className="max-w-full mx-auto">
+        {/* Horizontal Tabs Section - Modern Clean */}
+        <div className="bg-white border-b border-slate-200">
+          <div className="max-w-full mx-auto px-8">
+            <nav className="flex space-x-1" aria-label="Main View Tabs">
+              {[
+                { id: 'balans', name: 'balans' },
+                { id: 'wv', name: 'w&v' },
+                { id: 'kasstroom', name: 'kasstroom' },
+                { id: 'checks', name: 'checks', icon: '✓' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setMainViewTab(tab.id)}
+                  className={`py-4 px-8 font-medium text-sm transition-all duration-200 rounded-t-xl ${
+                    mainViewTab === tab.id
+                      ? 'bg-slate-100 text-slate-900 border-b-2 border-blue-500'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    {tab.icon && <span className="text-green-500">{tab.icon}</span>}
+                    <span>{tab.name}</span>
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Grid Layout - Modern Clean */}
+        <div className="grid grid-cols-12 gap-6 min-h-[600px] p-6 bg-slate-50">
+          {/* Left: Primary Content Section */}
+          <div className="col-span-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 h-full">
+              {mainViewTab === 'balans' && data && (
+                <div className="p-8 h-full overflow-auto">
+                  <BalanceSheet data={data} allRecords={allRecords} setSelectedCategory={setSelectedCategory} setSelectedMonth={setSelectedMonth} />
+                </div>
+              )}
+              {mainViewTab === 'wv' && data && (
+                <div className="p-8 h-full overflow-auto">
+                  <ExcelEnhancedProfitLoss data={data} allRecords={allRecords} categoryMappings={categoryMappings} setSelectedCategory={setSelectedCategory} setSelectedMonth={setSelectedMonth} />
+                </div>
+              )}
+              {mainViewTab === 'kasstroom' && data && (
+                <div className="p-8 h-full overflow-auto">
+                  <KasstroomOverzicht data={data} allRecords={allRecords} categoryMappings={categoryMappings} setSelectedCategory={setSelectedCategory} setSelectedMonth={setSelectedMonth} />
+                </div>
+              )}
+              {mainViewTab === 'checks' && (
+                <div className="p-8 h-full overflow-auto">
+                  {data ? (
+                    <FinancialChecks data={data} />
+                  ) : (
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="text-lg font-medium text-slate-600 mb-2">Financiële Checks</div>
+                        <div className="text-sm text-slate-500 mb-4">Laad eerst uw financiële gegevens om checks uit te voeren</div>
+                        <button
+                          onClick={() => {
+                            setModalContent('data-settings');
+                            setShowModal(true);
+                          }}
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                        >
+                          Data Laden
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!data && mainViewTab !== 'checks' && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="text-2xl font-light text-slate-400 mb-4">Weergave van balans, w&v, kasstroom</div>
+                    <div className="text-lg font-medium text-slate-600 mb-2">Geen data beschikbaar</div>
+                    <div className="text-sm text-slate-500">Laad eerst uw financiële gegevens</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Vertical Panel */}
+          <div className="col-span-4 space-y-6">
+            {/* Controller Cards - Top Row - Modern Clean */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* Financial Controller Card */}
+              <div 
+                onClick={() => {
+                  setModalContent('checks');
+                  setShowModal(true);
+                }}
+                className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer group"
+              >
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition-colors">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div className="text-slate-700 font-medium text-sm">Financial</div>
+                  <div className="text-slate-700 font-medium text-sm">controller</div>
+                </div>
+              </div>
+
+              {/* Business Controller Card */}
+              <div 
+                onClick={() => {
+                  setModalContent('checks');
+                  setShowModal(true);
+                }}
+                className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer group"
+              >
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-200 transition-colors">
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div className="text-slate-700 font-medium text-sm">Business</div>
+                  <div className="text-slate-700 font-medium text-sm">controller</div>
+                </div>
+              </div>
+
+              {/* CFO Card */}
+              <div 
+                onClick={() => {
+                  setModalContent('checks');
+                  setShowModal(true);
+                }}
+                className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer group"
+              >
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition-colors">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
+                  <div className="text-slate-700 font-medium text-sm">CFO</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Q&A Module - Large Bottom Section - Modern Clean */}
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 h-80">
+              <div className="text-center h-full flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div className="font-semibold text-4xl text-slate-800 mb-4">Q&A</div>
+                <div className="text-slate-600 mb-6 text-sm">Stel vragen over uw financiële data</div>
+                <button 
+                  onClick={() => {
+                    setModalContent('ai-chat');
+                    setShowModal(true);
+                  }}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium text-sm rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Start AI Chat
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Legacy Content (Hidden when using new layout) */}
+        <div className="hidden">
         {data && (
           <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
             {/* Main Tab Navigation */}
@@ -1262,6 +1561,245 @@ export default function FinancialControllerV2() {
             </div>
           </div>
         )}
+
+        {/* Modal System */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"
+              onClick={() => setShowModal(false)}
+            ></div>
+            
+            {/* Modal Content */}
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                  <h2 className="text-xl font-semibold text-[#1A2541]">
+                    {modalContent === 'ai-chat' && 'AI Financial Assistant'}
+                    {modalContent === 'checks' && 'Financiële Controles'}
+                    {modalContent === 'settings' && 'Instellingen'}
+                    {modalContent === 'data-settings' && 'Data Instellingen'}
+                  </h2>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Modal Body */}
+                <div className="h-[calc(90vh-8rem)]">
+                  {modalContent === 'ai-chat' && (
+                    <div className="h-full">
+                      <AIChat
+                        periodFrom={`${startYear}-${String(startMonth).padStart(2, '0')}`}
+                        periodTo={`${endYear}-${String(endMonth).padStart(2, '0')}`}
+                        data={data}
+                        allRecords={allRecords}
+                        categoryMappings={categoryMappings}
+                        setSelectedCategory={setSelectedCategory}
+                        setSelectedMonth={setSelectedMonth}
+                        messages={conversationMessages}
+                        setMessages={setConversationMessages}
+                        input={chatInput}
+                        setInput={setChatInput}
+                        loading={chatLoading}
+                        setLoading={setChatLoading}
+                        conversationId={currentConversationId}
+                        conversations={conversations}
+                        createNewConversation={createNewConversation}
+                        switchConversation={switchConversation}
+                        deleteConversation={deleteConversation}
+                        generateConversationTitle={generateConversationTitle}
+                      />
+                    </div>
+                  )}
+                  
+                  {modalContent === 'checks' && (
+                    <div className="p-6 h-full overflow-y-auto">
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span className="text-sm text-blue-800">Tip: Financial Checks zijn nu ook beschikbaar als tab in het hoofddashboard!</span>
+                        </div>
+                      </div>
+                      {data ? (
+                        <FinancialChecks data={data} />
+                      ) : (
+                        <div className="flex items-center justify-center h-96">
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-slate-600 mb-2">Geen data beschikbaar</div>
+                            <div className="text-sm text-slate-500 mb-4">Laad eerst uw financiële gegevens om checks uit te voeren</div>
+                            <button
+                              onClick={() => {
+                                setShowModal(false);
+                                setMainViewTab('checks');
+                              }}
+                              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-all duration-200"
+                            >
+                              Ga naar Checks Tab
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {modalContent === 'settings' && (
+                    <div className="p-6">
+                      <CategoryMappingSettings 
+                        allRecords={allRecords || []}
+                        onMappingsUpdated={handleMappingsUpdated}
+                        isNewUser={isNewUser}
+                        onSetupComplete={handleSetupComplete}
+                      />
+                    </div>
+                  )}
+
+                  {modalContent === 'data-settings' && (
+                    <div className="p-6 max-w-2xl">
+                      {/* Data Status Overview */}
+                      <div className="mb-6">
+                        <div className={`flex items-center space-x-3 p-4 rounded-xl border ${
+                          data 
+                            ? 'bg-green-50 border-green-200' 
+                            : error 
+                              ? 'bg-red-50 border-red-200'
+                              : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className={`w-4 h-4 rounded-full ${
+                            data ? 'bg-green-500' : error ? 'bg-red-500' : 'bg-slate-400'
+                          }`}></div>
+                          <div>
+                            <div className="font-medium text-slate-900">
+                              {data 
+                                ? `${allMeta?.totalRecords?.toLocaleString() || 0} records geladen` 
+                                : loading 
+                                  ? 'Data wordt geladen...' 
+                                  : 'Geen data beschikbaar'
+                              }
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              {data 
+                                ? `Periode: ${startYear}-${String(startMonth).padStart(2, '0')} tot ${endYear}-${String(endMonth).padStart(2, '0')}` 
+                                : 'Selecteer een periode en laad data om te beginnen'
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Error Display */}
+                      {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                          <div className="flex items-center">
+                            <svg className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                              <div className="font-medium text-red-800">Fout bij het ophalen van data</div>
+                              <div className="text-sm text-red-600 mt-1">{error}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Loading Progress */}
+                      {loading && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-blue-800">Data wordt geladen...</span>
+                            <span className="text-sm text-blue-600">
+                              {progress.loaded > 0 && `${progress.loaded.toLocaleString()} records`}
+                            </span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2">
+                            <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{
+                              width: progress.pages > 0 ? `${Math.min((progress.loaded / (progress.pages * progress.pageSize)) * 100, 100)}%` : '10%'
+                            }}></div>
+                          </div>
+                          <div className="text-xs text-blue-600 mt-2">
+                            {progress.pages > 0 && `Pagina ${Math.ceil(progress.loaded / progress.pageSize)} van geschat ${progress.pages}`}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Administration Info */}
+                      {availableAdministrations.length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="font-medium text-slate-900 mb-3">Beschikbare Administraties</h3>
+                          <div className="space-y-2">
+                            {availableAdministrations.map(admin => (
+                              <div key={admin} className={`flex items-center justify-between p-3 rounded-lg border ${
+                                selectedAdministrations.includes(admin) 
+                                  ? 'bg-blue-50 border-blue-200' 
+                                  : 'bg-slate-50 border-slate-200'
+                              }`}>
+                                <span className="text-sm font-medium">{admin}</span>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  selectedAdministrations.includes(admin) ? 'bg-blue-500' : 'bg-slate-300'
+                                }`}></div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 justify-end">
+                        <button
+                          onClick={() => setShowModal(false)}
+                          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all duration-200"
+                        >
+                          Sluiten
+                        </button>
+                        <button
+                          onClick={() => {
+                            fetchAllRecords();
+                            setShowModal(false);
+                          }}
+                          disabled={loading}
+                          className={`
+                            flex items-center px-6 py-2 text-sm font-medium transition-all duration-200 rounded-xl shadow-md
+                            ${loading 
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                              : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
+                            }
+                          `}
+                        >
+                          {loading ? (
+                            <>
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Laden...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                              </svg>
+                              {data ? 'Data Verversen' : 'AFAS Data Ophalen'}
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
       </div>
     </div>
   );

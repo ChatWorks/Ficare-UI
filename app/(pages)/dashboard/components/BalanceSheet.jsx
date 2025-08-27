@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency } from '../utils/formatters'; 
 
 export default function BalanceSheet({ data, allRecords, setSelectedCategory, setSelectedMonth }) {
   // State for collapsed/expanded categories - start with all collapsed
