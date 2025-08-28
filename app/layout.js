@@ -1,4 +1,11 @@
 import "./globals.css";
+import { Montserrat } from 'next/font/google';
+
+const montserrat = Montserrat({ 
+  subsets: ['latin'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-montserrat',
+});
 
 export const metadata = {
   title: "Ficare Financial Controller",
@@ -16,7 +23,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="nl">
-      <body>
+      <body className={`${montserrat.variable} font-montserrat`}>
           {children}
       </body>
     </html>

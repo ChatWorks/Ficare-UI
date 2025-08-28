@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import FicareLogo from '../../assets/images/ficare_logo.svg'
+import FicareLogo from '../../assets/images/ficare_logo_alleen_icoon.jpg'
 
 export default function AuthLayout({ children }) {
   return (
@@ -13,7 +13,7 @@ export default function AuthLayout({ children }) {
                 alt="Ficare Logo"
                 width={149}
                 height={32}
-                className="h-8 w-auto"
+                className="h-8 w-auto rounded-2xl"
               />
             </div>
             {children}

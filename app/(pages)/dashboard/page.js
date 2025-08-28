@@ -9,6 +9,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // import { dataCache } from '@/lib/dataCache'; // TEMPORARILY DISABLED
 
 import FicareLogo from '../../assets/images/ficare_logo.svg'
+import FicareNewLogo from '../../assets/images/ficare_logo_alleen_icoon.jpg'
 import Image from 'next/image'
 // Component imports
 import AIChat from './AIChat';
@@ -103,6 +104,7 @@ export default function FinancialControllerV2() {
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [settingsExpanded, setSettingsExpanded] = useState(false);
+  const [modalJustOpenedAt, setModalJustOpenedAt] = useState(0);
   
   // AI Chat state - persist across tab changes
 
@@ -414,6 +416,18 @@ export default function FinancialControllerV2() {
   // Legacy function name for compatibility
   const fetchAllRecords = () => loadFinancialData(false);
 
+  // Open Data Settings modal helper (for consistent behavior)
+  const openDataSettingsModal = () => {
+    try {
+      console.log('Opening Data Settings modal');
+      setModalContent('data-settings');
+      setShowModal(true);
+      setModalJustOpenedAt(Date.now());
+    } catch (e) {
+      console.error('Failed to open Data Settings modal', e);
+    }
+  };
+
   // Note: Middleware handles all authentication redirects
 
   // Load conversations on mount
@@ -724,85 +738,22 @@ export default function FinancialControllerV2() {
             {/* Top Navigation Bar - Modern Clean Design, Wireframe Layout */}
       <div className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-full mx-auto px-8 py-6">
-          <div className="grid grid-cols-3 items-center gap-8">
+          <div className="flex items-center justify-between">
             
-            {/* Left: Administration Dropdown */}
+            {/* Left: Logo */}
             <div className="flex items-center space-x-4">
                 <Image
                   src={FicareLogo}
-                alt="Ficare" 
-                width={120} 
-                height={38}
-                priority
-              />
-              <div className="bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-medium text-sm">
-                Administratie selecteren
-              </div>
-              <select 
-                className="px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[200px] bg-white shadow-sm"
-                value={selectedAdministrations.join(',')}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSelectedAdministrations(value ? [value] : []);
-                }}
-              >
-                <option value="">Alle administraties</option>
-                {availableAdministrations.map(admin => (
-                  <option key={admin} value={admin}>{admin}</option>
-                ))}
-              </select>
+                  alt="Ficare" 
+                  width={120} 
+                  height={38}
+                  priority
+                  className="rounded-2xl"
+                />
             </div>
 
-            {/* Center: Period Selector */}
-            <div className="flex items-center justify-center">
-              <div className="bg-slate-50 px-6 py-4 rounded-xl border border-slate-200 shadow-sm">
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm font-medium text-slate-700 whitespace-nowrap">Selecteren periode</span>
-                  <div className="flex items-center space-x-2">
-                    <select
-                      value={startMonth}
-                      onChange={(e) => setStartMonth(parseInt(e.target.value))}
-                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      {monthOptions.map(month => (
-                        <option key={month.value} value={month.value}>{month.label}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={startYear}
-                      onChange={(e) => setStartYear(parseInt(e.target.value))}
-                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      {yearOptions.map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                    <span className="text-slate-400 text-sm">tot</span>
-                    <select
-                      value={endMonth}
-                      onChange={(e) => setEndMonth(parseInt(e.target.value))}
-                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      {monthOptions.map(month => (
-                        <option key={month.value} value={month.value}>{month.label}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={endYear}
-                      onChange={(e) => setEndYear(parseInt(e.target.value))}
-                      className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    >
-                      {yearOptions.map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-                        {/* Right: Data Status, Checks Button, User Menu */}
-            <div className="flex items-center justify-end space-x-4">
+            {/* Right: Data Status, Checks Button, User Menu */}
+            <div className="flex items-center space-x-4">
               {/* Data Status Popup */}
               <div className="relative">
                 <button 
@@ -821,36 +772,30 @@ export default function FinancialControllerV2() {
                   <div className={`w-2 h-2 rounded-full ${
                     data ? 'bg-green-500' : error ? 'bg-red-500' : 'bg-slate-400'
                   }`}></div>
-                  <span>
+                  <span className="font-medium">
                     {data 
                       ? `${allMeta?.totalRecords?.toLocaleString() || 0} records` 
                       : loading 
                         ? 'Laden...' 
                         : 'Geen data'
                     }
-                          </span>
+                  </span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
               </div>
 
-              <button 
-                onClick={() => {
-                  setMainViewTab('checks');
-                  // Scroll to main content area
-                  document.querySelector('[aria-label="Main View Tabs"]')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className={`flex items-center space-x-3 px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200 shadow-md hover:shadow-lg ${
-                  mainViewTab === 'checks' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-green-500 hover:bg-green-600 text-white'
-                }`}
+              {/* Header: Instellingen knop */}
+              <button
+                onClick={openDataSettingsModal}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100"
               >
-                <div className={`w-3 h-3 rounded-full ${data ? 'bg-green-300' : 'bg-slate-300'}`}></div>
-                <span>Checks</span>
+                Instellingen
               </button>
-              <div className="text-sm text-slate-500">
+
+
+              <div className="text-sm font-medium text-slate-500">
                 <span>{userEmail}</span>
               </div>
                 <button
@@ -865,10 +810,10 @@ export default function FinancialControllerV2() {
               </div>
 
       <div className="max-w-[90%] mx-auto px-6 py-8">
-        <div className="mb-8">
+        <div className="mb-8 hidden">
               
           {/* Settings Section - Collapsible */}
-          <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
             {/* Settings Header */}
             <div
               className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -1154,7 +1099,7 @@ export default function FinancialControllerV2() {
                 <button
                   key={tab.id}
                   onClick={() => setMainViewTab(tab.id)}
-                  className={`py-4 px-8 font-medium text-sm transition-all duration-200 rounded-t-xl ${
+                  className={`py-4 px-8 font-semibold text-sm transition-all duration-200 rounded-t-xl ${
                     mainViewTab === tab.id
                       ? 'bg-slate-100 text-slate-900 border-b-2 border-blue-500'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -1167,6 +1112,85 @@ export default function FinancialControllerV2() {
                 </button>
               ))}
             </nav>
+          </div>
+        </div>
+
+        {/* Controlebalk onder tabs: Administratie + Periode + Checks */}
+        <div className="bg-white border-b border-slate-200">
+          <div className="max-w-full mx-auto px-8 py-4 grid grid-cols-12 gap-4 items-center">
+            {/* Administratie selectie */}
+            <div className="col-span-4 flex items-center gap-3">
+              <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">Administratie</span>
+              <select
+                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white min-w-[200px]"
+                value={selectedAdministrations.join(',')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedAdministrations(value ? [value] : []);
+                }}
+              >
+                <option value="">Alle administraties</option>
+                {availableAdministrations.map(admin => (
+                  <option key={admin} value={admin}>{admin}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Periode selectie */}
+            <div className="col-span-6">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-slate-600 font-semibold mr-2">Periode</span>
+                <select
+                  value={startMonth}
+                  onChange={(e) => setStartMonth(parseInt(e.target.value))}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white min-w-[100px]"
+                >
+                  {monthOptions.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={startYear}
+                  onChange={(e) => setStartYear(parseInt(e.target.value))}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white min-w-[80px]"
+                >
+                  {yearOptions.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <span className="text-slate-400 mx-2">—</span>
+                <select
+                  value={endMonth}
+                  onChange={(e) => setEndMonth(parseInt(e.target.value))}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white min-w-[100px]"
+                >
+                  {monthOptions.map(m => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={endYear}
+                  onChange={(e) => setEndYear(parseInt(e.target.value))}
+                  className="px-3 py-1.5 border border-slate-200 rounded-xl bg-white min-w-[80px]"
+                >
+                  {yearOptions.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Checks knop */}
+            <div className="col-span-2 flex justify-end">
+              <button
+                onClick={() => setMainViewTab('checks')}
+                className={`px-6 py-3 rounded-xl font-medium text-sm transition-all duration-200 shadow-sm ${
+                  mainViewTab === 'checks' ? 'bg-green-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+              >
+                Checks
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1205,10 +1229,7 @@ export default function FinancialControllerV2() {
                         <div className="text-lg font-medium text-slate-600 mb-2">Financiële Checks</div>
                         <div className="text-sm text-slate-500 mb-4">Laad eerst uw financiële gegevens om checks uit te voeren</div>
                         <button
-                          onClick={() => {
-                            setModalContent('data-settings');
-                            setShowModal(true);
-                          }}
+                          onClick={openDataSettingsModal}
                           className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                         >
                           Data Laden
@@ -1234,59 +1255,55 @@ export default function FinancialControllerV2() {
           <div className="col-span-4 space-y-6">
             {/* Controller Cards - Top Row - Modern Clean */}
             <div className="grid grid-cols-3 gap-3">
-              {/* Financial Controller Card */}
+              {/* Financial Controller Card (Active) */}
               <div 
                 onClick={() => {
                   setModalContent('checks');
                   setShowModal(true);
                 }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer group"
-              >
-                <div className="text-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition-colors">
-                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <div className="text-slate-700 font-medium text-sm">Financial</div>
-                  <div className="text-slate-700 font-medium text-sm">controller</div>
-                </div>
-              </div>
-
-              {/* Business Controller Card */}
-              <div 
-                onClick={() => {
-                  setModalContent('checks');
-                  setShowModal(true);
-                }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer group"
+                className="bg-green-50 border border-green-300 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group ring-1 ring-green-200"
               >
                 <div className="text-center">
                   <div className="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-200 transition-colors">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    <svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                   </div>
-                  <div className="text-slate-700 font-medium text-sm">Business</div>
-                  <div className="text-slate-700 font-medium text-sm">controller</div>
+                  <div className="text-green-800 font-bold text-sm">Financial</div>
+                  <div className="text-green-800 font-medium text-sm">controller</div>
                 </div>
               </div>
 
-              {/* CFO Card */}
+              {/* Business Controller Card (Disabled) */}
               <div 
-                onClick={() => {
-                  setModalContent('checks');
-                  setShowModal(true);
-                }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer group"
+                aria-disabled="true"
+                title="Binnenkort beschikbaar"
+                className="bg-slate-50 border border-slate-200 rounded-2xl p-6 opacity-60 cursor-not-allowed group"
               >
                 <div className="text-center">
-                  <div className="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition-colors">
-                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                  <div className="text-slate-500 font-semibold text-sm">Business</div>
+                  <div className="text-slate-500 font-medium text-sm">controller</div>
+                </div>
+              </div>
+
+              {/* CFO Card (Disabled) */}
+              <div 
+                aria-disabled="true"
+                title="Binnenkort beschikbaar"
+                className="bg-slate-50 border border-slate-200 rounded-2xl p-6 opacity-60 cursor-not-allowed group"
+              >
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
                   </div>
-                  <div className="text-slate-700 font-medium text-sm">CFO</div>
+                  <div className="text-slate-500 font-bold text-sm">CFO</div>
                 </div>
               </div>
             </div>
@@ -1294,19 +1311,21 @@ export default function FinancialControllerV2() {
             {/* Q&A Module - Large Bottom Section - Modern Clean */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 h-80">
               <div className="text-center h-full flex flex-col items-center justify-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <div className="font-semibold text-4xl text-slate-800 mb-4">Q&A</div>
-                <div className="text-slate-600 mb-6 text-sm">Stel vragen over uw financiële data</div>
+                <Image
+                  src={FicareNewLogo}
+                  alt="Ficare"
+                  width={48}
+                  height={48}
+                  className="mb-6 rounded-2xl"
+                />
+                <div className="font-bold text-4xl text-slate-800 mb-4">Q&A</div>
+                <div className="text-slate-600 mb-6 text-sm font-medium">Stel vragen over uw financiële data</div>
                 <button 
                   onClick={() => {
                     setModalContent('ai-chat');
                     setShowModal(true);
                   }}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium text-sm rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="px-8 py-3 bg-[#e66e60] hover:bg-[#d65a4c] text-white font-bold text-sm rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   Start AI Chat
                 </button>
@@ -1564,7 +1583,7 @@ export default function FinancialControllerV2() {
 
         {/* Modal System */}
         {showModal && (
-          <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 z-[1000] overflow-y-auto">
             {/* Backdrop */}
             <div 
               className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"
@@ -1573,10 +1592,12 @@ export default function FinancialControllerV2() {
             
             {/* Modal Content */}
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+              <div className={`relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden ${modalJustOpenedAt ? 'animate-in fade-in zoom-in' : ''}`}
+                   key={modalJustOpenedAt}
+              >
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-6 border-b border-slate-200">
-                  <h2 className="text-xl font-semibold text-[#1A2541]">
+                  <h2 className="text-xl font-bold text-[#1A2541]">
                     {modalContent === 'ai-chat' && 'AI Financial Assistant'}
                     {modalContent === 'checks' && 'Financiële Controles'}
                     {modalContent === 'settings' && 'Instellingen'}
@@ -1695,6 +1716,88 @@ export default function FinancialControllerV2() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Periode selectie */}
+                      <div className="mb-6">
+                        <div className="text-sm font-semibold text-slate-700 mb-2">Periode</div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <select
+                            value={startMonth}
+                            onChange={(e) => setStartMonth(parseInt(e.target.value))}
+                            className="px-2 py-1.5 border border-slate-200 rounded-md bg-white"
+                          >
+                            {monthOptions.map(m => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={startYear}
+                            onChange={(e) => setStartYear(parseInt(e.target.value))}
+                            className="px-2 py-1.5 border border-slate-200 rounded-md bg-white"
+                          >
+                            {yearOptions.map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+                          <span className="text-slate-400">—</span>
+                          <select
+                            value={endMonth}
+                            onChange={(e) => setEndMonth(parseInt(e.target.value))}
+                            className="px-2 py-1.5 border border-slate-200 rounded-md bg-white"
+                          >
+                            {monthOptions.map(m => (
+                              <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                          </select>
+                          <select
+                            value={endYear}
+                            onChange={(e) => setEndYear(parseInt(e.target.value))}
+                            className="px-2 py-1.5 border border-slate-200 rounded-md bg-white"
+                          >
+                            {yearOptions.map(y => (
+                              <option key={y} value={y}>{y}</option>
+                            ))}
+                          </select>
+
+                          <div className="ml-2 flex gap-2">
+                            <button onClick={selectCurrentMonth} className="px-2 py-1 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100">Deze maand</button>
+                            <button onClick={selectLastThreeMonths} className="px-2 py-1 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100">Laatste 3 mnd</button>
+                            <button onClick={selectCurrentYear} className="px-2 py-1 rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100">Dit jaar</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Administratie selectie */}
+                      {availableAdministrations.length > 0 && (
+                        <div className="mb-6">
+                          <div className="text-sm font-semibold text-slate-700 mb-2">Administraties</div>
+                          <div className="flex flex-wrap gap-2">
+                            {availableAdministrations.map(adminId => (
+                              <button
+                                key={adminId}
+                                onClick={() => {
+                                  if (selectedAdministrations.includes(adminId)) {
+                                    setSelectedAdministrations(selectedAdministrations.filter(id => id !== adminId));
+                                  } else {
+                                    setSelectedAdministrations([...selectedAdministrations, adminId]);
+                                  }
+                                }}
+                                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                                  selectedAdministrations.includes(adminId)
+                                    ? 'bg-[#222c56] text-white border-[#222c56]'
+                                    : 'bg-white text-[#222c56] border-slate-300 hover:bg-slate-50'
+                                }`}
+                              >
+                                {adminId}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <button onClick={() => setSelectedAdministrations(availableAdministrations)} className="px-2 py-1 text-sm rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100">Alles</button>
+                            <button onClick={() => setSelectedAdministrations([])} className="px-2 py-1 text-sm rounded-md bg-slate-50 border border-slate-200 hover:bg-slate-100">Geen</button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Error Display */}
                       {error && (
